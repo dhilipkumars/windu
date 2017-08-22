@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
+	"sort"
 )
 
 type filestat struct {
@@ -15,16 +17,20 @@ func du(filePath string) ([]filestat, error) {
 
 	var result []filestat
 
-	file, err := os.Open(filePath)
-	if err != nil {
-		return result, err
-	}
-	defer file.Close()
 
-	stat, err := file.Stat()
+	stat, err := os.Lstat(filePath)
 	if err != nil {
 		return result, err
 	}
+
+	isSymLink := stat.Mode() & os.ModeSymlink
+
+	if isSymLink != 0 {
+		//If this is is a symbolic link
+		//fmt.Printf("Skipping a symbolic link %s\n", filePath)
+		return result, nil
+	}
+
 
 	if !stat.IsDir() {
 		//If this is a file
@@ -32,6 +38,17 @@ func du(filePath string) ([]filestat, error) {
 		result = append(result, filestat{name: stat.Name(), size: stat.Size()})
 		return result, nil
 	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		if strings.Contains(err.Error(), "Access is denied") {
+			//If the error is access denied just complain and skip it
+			fmt.Fprintf(os.Stderr, "open(%s) err=%v\n", filePath, err)
+			return result, nil
+		}
+		return result, err
+	}
+	defer file.Close()
 
 	//fmt.Printf("Is a directory\n")
 	filesInDir, err := file.Readdir(-1)
@@ -68,8 +85,17 @@ func printUsage(args []string) {
 	fmt.Printf("Error: Should be %s <Dir Path>", args[0])
 }
 
+type BySize []filestat
+
+func (a BySize) Len() int           { return len(a) }
+func (a BySize) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a BySize) Less(i, j int) bool { return a[i].size > a[j].size }
+
 func printResult(results []filestat) {
 	maxSize := 0
+
+	//Sort the results according to max size
+	sort.Sort(BySize(results))
 
 	for _, result := range results {
 		sizeLen := len(fmt.Sprintf("%d", result.size))
