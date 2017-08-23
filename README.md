@@ -26,3 +26,5 @@ D:\>windu %GOPATH%\bin
  6622720    6M golint.exe
  1986048    1M windu.exe
 ```
+## Download the binary
+Go [here](https://github.com/dhilipkumars/windu/releases/tag/alpha-0.1)
