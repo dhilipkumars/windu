@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 	"sort"
+	"strings"
 )
 
 type filestat struct {
@@ -16,7 +16,6 @@ type filestat struct {
 func du(filePath string) ([]filestat, error) {
 
 	var result []filestat
-
 
 	stat, err := os.Lstat(filePath)
 	if err != nil {
@@ -30,7 +29,6 @@ func du(filePath string) ([]filestat, error) {
 		//fmt.Printf("Skipping a symbolic link %s\n", filePath)
 		return result, nil
 	}
-
 
 	if !stat.IsDir() {
 		//If this is a file
@@ -85,6 +83,22 @@ func printUsage(args []string) {
 	fmt.Printf("Error: Should be %s <Dir Path>", args[0])
 }
 
+func printHumanReadableSize(size int64) string {
+
+	suffix := []string{"B", "K", "M", "G", "T"}
+
+	for _, suf := range suffix {
+		if size <= 1024 {
+			return fmt.Sprintf("%d%s", size, suf)
+		}
+		size = size / 1024
+	}
+
+	//This is Petabytes
+	return fmt.Sprintf("%d%s", size, "P")
+
+}
+
 type BySize []filestat
 
 func (a BySize) Len() int           { return len(a) }
@@ -105,7 +119,7 @@ func printResult(results []filestat) {
 	}
 
 	for _, result := range results {
-		fmt.Printf("%*d %s\n", maxSize, result.size, result.name)
+		fmt.Printf("%*d %5s %s\n", maxSize, result.size, printHumanReadableSize(result.size), result.name)
 	}
 }
 
